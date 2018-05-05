@@ -1,9 +1,10 @@
-/* D* Lite (final version) - Maxim Likhachev (CMU) and Sven Koenig (USC) */
+/* D * Lite (final version) - Maxim Likhachev (CMU) and Sven Koenig (USC) */
+/* This script is based on http://idm-lab.org/project-a.html */
 
 #include "../include/include.h"
 #include "../include/heap.h"
 
-int Heap::keyless(cell *cell1, cell* cell2)
+int Heap::KeyLess(cell *cell1, cell* cell2)
 {
     for (int keyindex = 0; keyindex < keylength_; ++keyindex)
     {
@@ -15,17 +16,17 @@ int Heap::keyless(cell *cell1, cell* cell2)
     return 0;
 }
 
-int Heap::testheap()
+int Heap::TestHeap()
 {
     for (int d = heapsize_/2; d > 0; d--)
     {
-	    assert(!keyless(heap_[2*d],heap_[d]));
+	    assert(!KeyLess(heap_[2*d],heap_[d]));
 	    if (2*d+1 <= heapsize_)
-	        assert(!keyless(heap_[2*d+1],heap_[d]));
+	        assert(!KeyLess(heap_[2*d+1],heap_[d]));
     }
 }
 
-void Heap::percolatedown(int hole, cell *tmp)
+void Heap::PercolateDown(int hole, cell *tmp)
 {
     int child;
 
@@ -34,9 +35,9 @@ void Heap::percolatedown(int hole, cell *tmp)
         for (; 2*hole <= heapsize_; hole = child)
         {
             child = 2*hole;
-            if (child != heapsize_ && keyless(heap_[child+1], heap_[child]))
+            if (child != heapsize_ && KeyLess(heap_[child+1], heap_[child]))
                 ++child;
-            if (keyless(heap_[child], tmp))
+            if (KeyLess(heap_[child], tmp))
             {
                 heap_[hole] = heap_[child];
                 heap_[hole]->heapindex = hole;
@@ -49,11 +50,11 @@ void Heap::percolatedown(int hole, cell *tmp)
     }
 }
 
-void Heap::percolateup(int hole, cell *tmp)
+void Heap::PercolateUp(int hole, cell *tmp)
 {
     if (heapsize_ != 0)
     {
-        for (; hole > 1 && keyless(tmp, heap_[hole/2]); hole /= 2)
+        for (; hole > 1 && KeyLess(tmp, heap_[hole/2]); hole /= 2)
         {
             heap_[hole] = heap_[hole/2];
             heap_[hole]->heapindex = hole;
@@ -63,40 +64,40 @@ void Heap::percolateup(int hole, cell *tmp)
     }
 }
 
-void Heap::percolateupordown(int hole, cell *tmp)
+void Heap::PercolateUpordown(int hole, cell *tmp)
 {
     if (heapsize_ != 0)
     {
-        if (hole > 1 && keyless(tmp, heap_[hole/2]))
-            percolateup(hole, tmp);
+        if (hole > 1 && KeyLess(tmp, heap_[hole/2]))
+            PercolateUp(hole, tmp);
         else
-            percolatedown(hole, tmp);
+            PercolateDown(hole, tmp);
     }
 }
 
-void Heap::emptyheap(int length)
+void Heap::EmptyHeap(int length)
 {
     keylength_ = length;
     heapsize_ = 0;
 }
 
-cell *Heap::topheap()
+cell *Heap::TopHeap()
 {
     if (heapsize_ == 0)
 	    return NULL;
     return heap_[1];
 }
 
-void Heap::deleteheap(cell *thiscell, int mazeiteration)
+void Heap::DeleteHeap(cell *thiscell, int mazeiteration)
 {
     if (thiscell->heapindex != 0 && thiscell->generated == mazeiteration)
     {
-        percolateupordown(thiscell->heapindex, heap_[heapsize_--]);
+        PercolateUpordown(thiscell->heapindex, heap_[heapsize_--]);
         thiscell->heapindex = 0;
     }
 }
 
-cell* Heap::popheap()
+cell* Heap::PopHeap()
 {
     cell *thiscell;
 
@@ -104,20 +105,17 @@ cell* Heap::popheap()
 	    return NULL;
     thiscell = heap_[1];
     thiscell->heapindex = 0;
-    percolatedown(1, heap_[heapsize_--]);
+    PercolateDown(1, heap_[heapsize_--]);
     return thiscell;
 }
 
-void Heap::insertheap(cell *thiscell, int mazeiteration)
+void Heap::InsertHeap(cell *thiscell, int mazeiteration)
 {
     if (thiscell->heapindex == 0 || thiscell->generated != mazeiteration)
     {
 	    thiscell->heapindex = 0;
-#ifdef DEBUG
-	    assert(heapsize_ < HEAPSIZE-1);
-#endif
-	    percolateup(++heapsize_, thiscell);
+	    PercolateUp(++heapsize_, thiscell);
     }
     else
-	    percolateupordown(thiscell->heapindex, heap_[thiscell->heapindex]);
+	    PercolateUpordown(thiscell->heapindex, heap_[thiscell->heapindex]);
 }

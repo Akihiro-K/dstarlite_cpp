@@ -1,4 +1,5 @@
-/* D* Lite (final version) - Maxim Likhachev (CMU) and Sven Koenig (USC) */
+/* D * Lite (final version) - Maxim Likhachev (CMU) and Sven Koenig (USC) */
+/* This script is based on http://idm-lab.org/project-a.html */
 
 #ifndef DSTARLITE_H_
 #define DSTARLITE_H_
@@ -12,7 +13,7 @@ class DstarLite
 private:
     cell goaltmpcell, oldtmpcell;
     Heap heap_;
-    void swappermutations(int n);
+    void SwapPermutations(int n);
 
 public:
     int keymodifier;
@@ -21,20 +22,22 @@ public:
     int permute[DIRECTIONS];
     int* permutation[DIRECTIONS];
     int permutations;
-    void createpermutations();
-    void initialize();
-    void initializecell(cell *thiscell);
-    void updatecell(cell *thiscell);
-    void updatekey(cell *thiscell);
-    void updaterhs(cell *thiscell);
-    int computeshortestpath();
-    void updatemaze(cell *robot);
-    bool isgoal();
-    bool isobstacle();
-    void updatelastcell();
-    void cleartrace();
-    void updatekeymodifier();
-    void searchmaze();
+
+    DstarLite(int goaly=GOALY, int goalx=GOALX, int starty=STARTY, int startx=STARTX, int height=MAZEHEIGHT, int width=MAZEWIDTH);
+    void CreatePermutations();
+    void Initialize();
+    void InitializeCell(cell *thiscell);
+    void UpdateCell(cell *thiscell);
+    void UpdateKey(cell *thiscell);
+    void UpdateRHS(cell *thiscell);
+    int ComputeShortestPath();
+    void UpdateMaze(cell *robot);
+    bool IsGoal();
+    bool IsObstacle();
+    void UpdateLastCell();
+    void ClearTrace();
+    void UpdateKeymodifier();
+    void SearchMaze();
 
 };
 

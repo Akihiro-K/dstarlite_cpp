@@ -1,10 +1,12 @@
-/* D* Lite (final version) - Maxim Likhachev (CMU) and Sven Koenig (USC) */
+/* D * Lite (final version) - Maxim Likhachev (CMU) and Sven Koenig (USC) */
+/* This script is based on http://idm-lab.org/project-a.html */
 
 #ifndef MAZE_H_
 #define MAZE_H_
 
 #include "include.h"
 #include <vector>
+#include <string>
 
 struct cell;
 typedef struct cell cell;
@@ -18,9 +20,9 @@ struct cell
     short obstacle;
     int x, y;
     int dfsx, dfsy; /* needed only for generating dfs mazes */
-    int g;
-    int rhs;
-    int key[3];
+    float g;
+    float rhs;
+    float key[3];
     int generated;
     int heapindex;
 };
@@ -28,8 +30,8 @@ struct cell
 class Maze
 {
 private:
-    void preprocessmaze();
-    void postprocessmaze();
+    void PreprocessMaze();
+    void PostprocessMaze();
 
     int goaly_;
     int goalx_;
@@ -40,10 +42,12 @@ private:
 
 public:
     Maze(int goaly=GOALY, int goalx=GOALX, int starty=STARTY, int startx=STARTX, int height=MAZEHEIGHT, int width=MAZEWIDTH);
-    void newrandommaze();
-    void newdfsmaze(int wallstoremove);
-    void printactualmaze();
-    void printknownmaze();
+    void SetMazeParameters(int goaly, int goalx, int starty, int startx, int height, int width);
+    void NewRandomMaze();
+    void NewDfsMaze(int wallstoremove);
+    void PrintActualMaze();
+    void PrintKnownMaze();
+    void ReadFromFile(std::string filepath);
 
     std::vector<std::vector<cell>> graph_;
     cell *mazestart_; // Note: goal cell of the robot

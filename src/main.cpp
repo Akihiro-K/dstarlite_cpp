@@ -7,52 +7,54 @@
 #include "../include/dstarlite.h"
 
 #include <iostream>
+#include <string>
 
 int main(int argc, char *argv[])
 {
 	DstarLite system;
 
-#ifdef RANDOMIZESUCCS
-    system.createpermutations();
-#endif
-    srandom(13);
+    srandom(15);
 
-    for (int k = 0; k < RUNS; ++k)
-    {
-		std::cout << "maze " << k << std::endl;
+	if (argc==1)
+	{
+		system.maze_.NewDfsMaze(WALLSTOREMOVE);
+	} else if (argc==2)
+	{
+		std::string filepath =  std::string(argv[1]);
+		system.maze_.ReadFromFile(filepath.c_str());
+	} else
+	{
+		return -1;
+	}
 
-#ifdef RANDOMMAZE	
-		system.maze_.newrandommaze();
-#else
-		system.maze_.newdfsmaze(WALLSTOREMOVE);
-#endif
 #ifdef DISPLAY
-		system.maze_.printactualmaze();
+	system.maze_.PrintActualMaze();
 #endif
-		system.initialize();
+	system.Initialize();
 
-		system.updatelastcell();
-		while (system.isgoal())
+	system.UpdateLastCell();
+	while (!system.IsGoal())
+	{
+		if (system.ComputeShortestPath())
+			break;
+#ifdef DISPLAY
+		system.maze_.PrintKnownMaze();
+#endif
+		system.ClearTrace();
+		do
 		{
-	    	if (system.computeshortestpath())
-				break;
-#ifdef DISPLAY
-			system.maze_.printknownmaze();
-#endif
-			system.cleartrace();
-	    	do
+			system.SearchMaze();
+		} while (!system.IsGoal() && !system.IsObstacle());
+		if (!system.IsGoal())
+		{
+			system.UpdateKeymodifier();
+			system.UpdateLastCell();
+			for (cell *tmpcell=system.maze_.mazegoal_; tmpcell; tmpcell=tmpcell->trace)
 			{
-				system.searchmaze();
-			} while (system.isgoal() && !system.isobstacle());
-			if (system.isgoal())
-			{
-				system.updatekeymodifier();
-				system.updatelastcell();
-				for (cell *tmpcell=system.maze_.mazegoal_; tmpcell; tmpcell=tmpcell->trace)
-					system.updatemaze(tmpcell);
+				system.UpdateMaze(tmpcell);
 			}
-		}
-    }
+		}			
+	}
 
 	return 0;
 }

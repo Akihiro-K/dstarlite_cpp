@@ -1,9 +1,16 @@
-/* D* Lite (final version) - Maxim Likhachev (CMU) and Sven Koenig (USC) */
+/* D * Lite (final version) - Maxim Likhachev (CMU) and Sven Koenig (USC) */
+/* This script is based on http://idm-lab.org/project-a.html */
 
 #include "../include/include.h"
 #include "../include/maze.h"
 
+#include "json.hpp"
+
 #include <iostream>
+#include <fstream>
+#include <sstream>
+
+using json = nlohmann::json;
 
 Maze::Maze(int goaly, int goalx, int starty, int startx, int height, int width)
 {
@@ -18,7 +25,18 @@ Maze::Maze(int goaly, int goalx, int starty, int startx, int height, int width)
 	width_ = width;
 }
 
-void Maze::preprocessmaze()
+void Maze::SetMazeParameters(int goaly, int goalx, int starty, int startx, int height, int width)
+{
+	goaly_ = goaly;
+	goalx_ = goalx;
+	starty_ = starty;
+	startx_ = startx;
+
+	height_ = height;
+	width_ = width;	
+}
+
+void Maze::PreprocessMaze()
 {
     if (!graph_.size())
     {
@@ -45,32 +63,13 @@ void Maze::preprocessmaze()
 			}
 		}
     }
-#ifdef RANDOMSTARTGOAL
-    goaly_ = (random() % ((MAZEHEIGHT + 1) / 2)) * 2;
-    goalx_ = (random() % ((MAZEWIDTH + 1) / 2)) * 2;
-    while (1)
-    {
-		starty_ = (random() % ((MAZEHEIGHT + 1) / 2)) * 2;
-		startx_ = (random() % ((MAZEWIDTH + 1) / 2)) * 2;
-			if (startx_ != goalx_ || starty_ != goaly_)
-				break;
-    }
+
     mazestart_ = &graph_[starty_][startx_];
     mazegoal_ = &graph_[goaly_][goalx_];
-#else
-#ifdef DEBUG
-    assert(STARTY % 2 == 0);
-    assert(STARTX % 2 == 0);
-    assert(GOALY % 2 == 0);
-    assert(GOALX % 2 == 0);
-#endif
-    mazestart_ = &graph_[starty_][startx_];
-    mazegoal_ = &graph_[goaly_][goalx_];
-#endif
     mazeiteration_ = 0;	
 }
 
-void Maze::postprocessmaze()
+void Maze::PostprocessMaze()
 {
     cell *tmpcell;
 
@@ -103,11 +102,11 @@ void Maze::postprocessmaze()
 	}
 }
 
-void Maze::newrandommaze()
+void Maze::NewRandomMaze()
 {
     cell *tmpcell;
 
-    preprocessmaze();
+    PreprocessMaze();
     for (int y=0; y<height_; ++y)
 	{
 		for (int x=0; x<width_; ++x)
@@ -116,13 +115,11 @@ void Maze::newrandommaze()
 		}
 	}
 	mazegoal_->obstacle = 0;
-#ifndef STARTCANBEBLOCKED
     mazestart_->obstacle = 0;
-#endif
-    postprocessmaze();
+    PostprocessMaze();
 }
 
-void Maze::newdfsmaze(int wallstoremove)
+void Maze::NewDfsMaze(int wallstoremove)
 {
     int d, dtmp;
     int x, y;
@@ -132,89 +129,104 @@ void Maze::newdfsmaze(int wallstoremove)
     int permute[8] = {0, 1, 2, 3, 4, 5, 6, 7};
     int permutetmp;
 
-    preprocessmaze();
-  #ifdef DEBUG
-    assert(MAZEWIDTH % 2 == 1);
-    assert(MAZEHEIGHT % 2 == 1);
-  #endif
-    for (y = 0; y < MAZEHEIGHT; ++y)
-	for (x = 0; x < MAZEWIDTH; ++x)
-	{
-	    graph_[y][x].obstacle = 1;
-	    graph_[y][x].dfsx = 0;
-	    graph_[y][x].dfsy = 0;
-	}
+    PreprocessMaze();
+    for (y = 0; y < height_; ++y)
+		for (x = 0; x < width_; ++x)
+		{
+			graph_[y][x].obstacle = 1;
+			graph_[y][x].dfsx = 0;
+			graph_[y][x].dfsy = 0;
+		}
     x = 0;
     y = 0;
     graph_[y][x].dfsx = -1;
     graph_[y][x].dfsy = -1;
     while (1)
     {
-	if (graph_[y][x].obstacle)
-	    graph_[y][x].obstacle = 0;
-	for (d = 0; d < DIRECTIONS-1; ++d)
-	{
-	    randomnumber = random() % (DIRECTIONS-d);
-	    permutetmp = permute[randomnumber];
-	    permute[randomnumber] = permute[DIRECTIONS-1-d];
-	    permute[DIRECTIONS-1-d] = permutetmp;
-	}
-	for (dtmp = 0; dtmp < DIRECTIONS; ++dtmp)
-	{
-	    d = permute[dtmp];
-	    newx = x + 2*dx[d];
-	    newy = y + 2*dy[d];
-	    if (graph_[y][x].succ[d] != NULL && graph_[newy][newx].obstacle)
-	    {
-		if (graph_[y + dy[d]][x + dx[d]].obstacle)
-		    graph_[y + dy[d]][x + dx[d]].obstacle = 0;
-		graph_[newy][newx].dfsx = x;
-		graph_[newy][newx].dfsy = y;
-		x = newx;
-		y = newy;
-		break;
-	    }
-	}
-	if (dtmp == DIRECTIONS)
-	{
-	    if (graph_[y][x].dfsx == -1)
-		break;
-	    newx = graph_[y][x].dfsx;
-	    newy = graph_[y][x].dfsy;
-	    x = newx;
-	    y = newy;
-	}
+		if (graph_[y][x].obstacle)
+			graph_[y][x].obstacle = 0;
+		for (d = 0; d < DIRECTIONS-1; ++d)
+		{
+			randomnumber = random() % (DIRECTIONS-d);
+			permutetmp = permute[randomnumber];
+			permute[randomnumber] = permute[DIRECTIONS-1-d];
+			permute[DIRECTIONS-1-d] = permutetmp;
+		}
+		for (dtmp = 0; dtmp < DIRECTIONS; ++dtmp)
+		{
+			d = permute[dtmp];
+			newx = x + 2*dx[d];
+			newy = y + 2*dy[d];
+			if (graph_[y][x].succ[d] != NULL && graph_[newy][newx].obstacle)
+			{
+				if (graph_[y + dy[d]][x + dx[d]].obstacle)
+					graph_[y + dy[d]][x + dx[d]].obstacle = 0;
+				graph_[newy][newx].dfsx = x;
+				graph_[newy][newx].dfsy = y;
+				x = newx;
+				y = newy;
+				break;
+			}
+		}
+		if (dtmp == DIRECTIONS)
+		{
+			if (graph_[y][x].dfsx == -1)
+			break;
+			newx = graph_[y][x].dfsx;
+			newy = graph_[y][x].dfsy;
+			x = newx;
+			y = newy;
+		}
     }
     while (wallstoremove)
     {
-	newx = random() % MAZEWIDTH;
-	newy = random() % MAZEHEIGHT;
-	if (graph_[newy][newx].obstacle)
-	{
-	    graph_[newy][newx].obstacle = 0;
-	    --wallstoremove;
-	}
+		newx = random() % width_;
+		newy = random() % height_;
+		if (graph_[newy][newx].obstacle)
+		{
+			graph_[newy][newx].obstacle = 0;
+			--wallstoremove;
+		}
     }
     mazegoal_->obstacle = 0;
-#ifndef STARTCANBEBLOCKED
     mazestart_->obstacle = 0;
-#endif
-    postprocessmaze();
+    PostprocessMaze();
 }
 
-void Maze::printactualmaze()
+void Maze::ReadFromFile(std::string filepath)
 {
-    std::cout << "start cell: " << mazestart_->x << " " << mazestart_->y << std::endl;
-    std::cout << "goal cell: " << mazegoal_->x << " " << mazegoal_->y << std::endl;
+	std::ifstream ifs(filepath);
+	json j_;
+	ifs >> j_;
 
-	for (int x = 0; x < MAZEWIDTH+2; ++x)
+	SetMazeParameters(j_["goaly"], j_["goalx"], j_["starty"], j_["startx"], j_["height"], j_["width"]);
+
+    PreprocessMaze();
+    for (int i=0; i<(int)j_["obstacles"].size(); ++i)
+	{
+		std::ostringstream oss;
+		oss << i;
+		std::string obs_num = oss.str();
+		graph_[j_["obstacles"][obs_num.c_str()]["y"]][j_["obstacles"][obs_num.c_str()]["x"]].obstacle = 1;
+	}
+	mazegoal_->obstacle = 0;
+    mazestart_->obstacle = 0;
+    PostprocessMaze();	
+}
+
+void Maze::PrintActualMaze()
+{
+    std::cout << "start cell: " << mazegoal_->x << " " << mazegoal_->y << std::endl;
+    std::cout << "goal cell: " << mazestart_->x << " " << mazestart_->y << std::endl;
+
+	for (int x = 0; x < width_+2; ++x)
         std::cout << "x";
     std::cout << std::endl;
 
-    for (int y = 0; y < MAZEHEIGHT; ++y)
+    for (int y = 0; y < height_; ++y)
     {
 	    std::cout << "x";
-        for (int x = 0; x < MAZEWIDTH; ++x)
+        for (int x = 0; x < width_; ++x)
         {
             if (mazegoal_ == &graph_[y][x])
                 std::cout << "R";
@@ -227,23 +239,23 @@ void Maze::printactualmaze()
         }
 	    std::cout << "x\n";
     }
-    for (int x = 0; x < MAZEWIDTH+2; ++x)
+    for (int x = 0; x < width_+2; ++x)
         std::cout << "X";
     std::cout << "\n\n\n";
 }
 
-void Maze::printknownmaze()
+void Maze::PrintKnownMaze()
 {
     std::vector<std::vector<char>> display;
 
     if (!display.size())
     {
-        display.resize(MAZEHEIGHT);
-	    for (int y = 0; y < MAZEHEIGHT; ++y)
-	        display[y].resize(MAZEWIDTH);
+        display.resize(height_);
+	    for (int y = 0; y < height_; ++y)
+	        display[y].resize(width_);
     }
-    for (int y = 0; y < MAZEHEIGHT; ++y)
-	    for (int x = 0; x < MAZEWIDTH; ++x)
+    for (int y = 0; y < height_; ++y)
+	    for (int x = 0; x < width_; ++x)
 	    {
 		    display[y][x] = 'X';
 		    for (int d = 0; d < DIRECTIONS; ++d)
@@ -251,20 +263,22 @@ void Maze::printknownmaze()
 			        display[y][x] = ' ';
 	    }
     for (cell *tmpcell = mazegoal_; tmpcell != mazestart_; tmpcell = tmpcell->searchtree)
-	    display[tmpcell->y][tmpcell->x] = '.';
+	{
+		display[tmpcell->y][tmpcell->x] = '.';
+	}
     display[mazestart_->y][mazestart_->x] = 'G';
     display[mazegoal_->y][mazegoal_->x] = 'R';
-    for (int x = 0; x < MAZEWIDTH+2; ++x)
+    for (int x = 0; x < width_+2; ++x)
         std::cout << "X";
     std::cout << "\n";
-    for (int y = 0; y < MAZEHEIGHT; ++y)
+    for (int y = 0; y < height_; ++y)
     {
 	    std::cout << "X";
-	    for (int x = 0; x < MAZEWIDTH; ++x)
+	    for (int x = 0; x < width_; ++x)
 	        std::cout << (char)display[y][x];
 	    std::cout << "X\n";
     }
-    for (int x = 0; x < MAZEWIDTH+2; ++x)
+    for (int x = 0; x < width_+2; ++x)
         std::cout << "X";
     std::cout << "\n\n\n";
 }
